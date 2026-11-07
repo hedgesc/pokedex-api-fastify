@@ -1,0 +1,759 @@
+openapi: 3.0.3
+info:
+  title: Pokedex API
+  version: 1.0.0
+  description: |
+    REST API for pokedex data. There is no authentication.
+
+    List endpoints for characters and moves return a bare array when neither
+    `limit` nor `offset` is set. If either query parameter is present, the
+    response is a page object with `items`, `total_count`, and `has_more`.
+    An omitted `limit` defaults to 10 and an omitted `offset` defaults to 0
+    once paging is triggered.
+
+    Create, update, and delete success bodies are plain text. Reads return
+    snake_case columns from Postgres.
+servers:
+  - url: http://localhost:3416
+tags:
+  - name: Characters
+  - name: Dexes
+  - name: Moves
+  - name: Games
+paths:
+  /api/v1/characters:
+    get:
+      tags: [Characters]
+      summary: List characters
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: |
+            An array of character summaries when `limit` and `offset` are both
+            omitted. A page of full character rows when either is present.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/CharacterSummary'
+                  - $ref: '#/components/schemas/CharacterPage'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Characters]
+      summary: Create a character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CharacterWrite'
+      responses:
+        '201':
+          description: Character created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Character 1 created
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/characters/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Characters]
+      summary: Get a character
+      responses:
+        '200':
+          description: Character
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Characters]
+      summary: Update a character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CharacterWrite'
+      responses:
+        '200':
+          description: Character updated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Character 1 updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Characters]
+      summary: Delete a character
+      responses:
+        '200':
+          description: Character deleted
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Character 1 deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/dexes:
+    get:
+      tags: [Dexes]
+      summary: List dexes
+      responses:
+        '200':
+          description: Dexes ordered by generation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dex'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Dexes]
+      summary: Create a dex
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DexWrite'
+      responses:
+        '201':
+          description: Dex created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Dex 1 created
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/dexes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Dexes]
+      summary: Get a dex
+      responses:
+        '200':
+          description: Dex
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dex'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Dexes]
+      summary: Update a dex
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DexWrite'
+      responses:
+        '200':
+          description: Dex updated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Dex 1 updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Dexes]
+      summary: Delete a dex
+      responses:
+        '200':
+          description: Dex deleted
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Dex 1 deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/dexes/{id}/games:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Dexes]
+      summary: List games in a dex
+      responses:
+        '200':
+          description: Games whose dex_id matches the path id. An unknown dex id returns an empty array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/dexes/{id}/characters:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Dexes]
+      summary: List characters in a dex
+      responses:
+        '200':
+          description: Characters linked to the dex. An unknown dex id returns an empty array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Character'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/dexes/{id}/characters/{characterId}/moves:
+    parameters:
+      - $ref: '#/components/parameters/id'
+      - name: characterId
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Dexes]
+      summary: List moves for a character in a dex
+      responses:
+        '200':
+          description: |
+            Rows from `dexes_characters_moves` joined to `moves`, ordered with
+            suggested moves first. Duplicate column names from the join keep
+            the value from `moves`. An unknown pair returns an empty array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DexCharacterMove'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/moves:
+    get:
+      tags: [Moves]
+      summary: List moves
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: |
+            An array of moves when `limit` and `offset` are both omitted.
+            A page object when either is present.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Move'
+                  - $ref: '#/components/schemas/MovePage'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Moves]
+      summary: Create a move
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveWrite'
+      responses:
+        '201':
+          description: Move created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Move 1 created
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/moves/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Moves]
+      summary: Get a move
+      responses:
+        '200':
+          description: Move
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Move'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Moves]
+      summary: Update a move
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveWrite'
+      responses:
+        '200':
+          description: Move updated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Move 1 updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Moves]
+      summary: Delete a move
+      responses:
+        '200':
+          description: Move deleted
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Move 1 deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/games:
+    get:
+      tags: [Games]
+      summary: List games
+      responses:
+        '200':
+          description: Games ordered by dex id, then game id
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Games]
+      summary: Create a game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameWrite'
+      responses:
+        '201':
+          description: Game created
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Game 1 created
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/games/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Games]
+      summary: Get a game
+      responses:
+        '200':
+          description: Game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Games]
+      summary: Update a game
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameWrite'
+      responses:
+        '200':
+          description: Game updated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Game 1 updated
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Games]
+      summary: Delete a game
+      responses:
+        '200':
+          description: Game deleted
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Game 1 deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 10
+      description: Page size. Paging starts when this or `offset` is present.
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+      description: Number of rows to skip. Paging starts when this or `limit` is present.
+  responses:
+    NotFound:
+      description: No row with that id
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Not found
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Internal server error
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    CharacterSummary:
+      type: object
+      properties:
+        character_id:
+          type: integer
+        name:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+    Character:
+      type: object
+      properties:
+        character_id:
+          type: integer
+        pokemon_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        hp:
+          type: integer
+          nullable: true
+        attack:
+          type: integer
+          nullable: true
+        defense:
+          type: integer
+          nullable: true
+        speed:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+          nullable: true
+        special_attack:
+          type: integer
+          nullable: true
+        special_defense:
+          type: integer
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
+        evolves_from_id:
+          type: integer
+          nullable: true
+        gen:
+          type: integer
+          nullable: true
+        types:
+          type: string
+          nullable: true
+        abilities:
+          type: string
+          nullable: true
+    CharacterWrite:
+      type: object
+      properties:
+        pokemon_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        hp:
+          type: integer
+          nullable: true
+        attack:
+          type: integer
+          nullable: true
+        defense:
+          type: integer
+          nullable: true
+        speed:
+          type: integer
+          nullable: true
+        total:
+          type: integer
+          nullable: true
+        special_attack:
+          type: integer
+          nullable: true
+        special_defense:
+          type: integer
+          nullable: true
+        image_url:
+          type: string
+          nullable: true
+        evolves_from_id:
+          type: integer
+          nullable: true
+        gen:
+          type: integer
+          nullable: true
+        types:
+          type: string
+          nullable: true
+        abilities:
+          type: string
+          nullable: true
+    CharacterPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Character'
+        total_count:
+          type: integer
+        has_more:
+          type: boolean
+    Dex:
+      type: object
+      properties:
+        dex_id:
+          type: integer
+        name_id:
+          type: string
+          nullable: true
+        name:
+          type: string
+        alternate_name:
+          type: string
+          nullable: true
+        gen:
+          type: integer
+          nullable: true
+    DexWrite:
+      type: object
+      properties:
+        name_id:
+          type: string
+          nullable: true
+        name:
+          type: string
+        alternate_name:
+          type: string
+          nullable: true
+        gen:
+          type: integer
+          nullable: true
+    Move:
+      type: object
+      properties:
+        move_id:
+          type: integer
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        power:
+          type: integer
+          nullable: true
+        accuracy:
+          type: integer
+          nullable: true
+        pp:
+          type: integer
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        gen:
+          type: integer
+          nullable: true
+    MoveWrite:
+      type: object
+      properties:
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        power:
+          type: integer
+          nullable: true
+        accuracy:
+          type: integer
+          nullable: true
+        pp:
+          type: integer
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        gen:
+          type: integer
+          nullable: true
+    MovePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Move'
+        total_count:
+          type: integer
+        has_more:
+          type: boolean
+    Game:
+      type: object
+      properties:
+        game_id:
+          type: integer
+        dex_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        regions:
+          type: string
+          nullable: true
+    GameWrite:
+      type: object
+      properties:
+        dex_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        regions:
+          type: string
+          nullable: true
+    DexCharacterMove:
+      type: object
+      description: Joined dex-character move row. Extra junction columns may be present.
+      additionalProperties: true
+      properties:
+        dex_id:
+          type: integer
+        character_id:
+          type: integer
+        move_id:
+          type: integer
+        is_suggested:
+          type: boolean
+          nullable: true
+        name:
+          type: string
+        name_id:
+          type: string
+          nullable: true
+        power:
+          type: integer
+          nullable: true
+        accuracy:
+          type: integer
+          nullable: true
+        pp:
+          type: integer
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        gen:
+          type: integer
+          nullable: true

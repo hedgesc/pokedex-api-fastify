@@ -1,0 +1,28 @@
+{
+  "name": "pokedex-api-fastify",
+  "version": "1.0.0",
+  "description": "A REST API for pokedex data",
+  "author": "Cory Hedges",
+  "license": "ISC",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "start": "cross-env NODE_ENV=production node server/app.js",
+    "dev": "cross-env NODE_ENV=development node --watch server/app.js",
+    "dock": "cross-env NODE_ENV=docker node server/app.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.6",
+    "fastify": "5.12.8",
+    "lodash": "^4.17.21",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
+  }
+}
