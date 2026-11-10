@@ -1,4 +1,4 @@
-import Fastify from 'fastify'
+import Fastify, { type FastifyServerOptions } from 'fastify'
 import cors from '@fastify/cors'
 import formbody from '@fastify/formbody'
 import swagger from '@fastify/swagger'
@@ -15,7 +15,11 @@ List endpoints for characters and moves return a bare array when neither limit n
 
 Create, update, and delete success bodies are plain text. Reads return snake_case columns from Postgres.`
 
-export async function buildApp (options = {}) {
+interface BuildOptions {
+  logger?: FastifyServerOptions['logger']
+}
+
+export async function buildApp (options: BuildOptions = {}) {
   const app = Fastify({
     logger: options.logger ?? true
   })
@@ -31,12 +35,15 @@ export async function buildApp (options = {}) {
   })
 
   app.setErrorHandler((err, request, reply) => {
-    const statusCode = err.statusCode
+    const statusCode = typeof err === 'object' && err !== null && 'statusCode' in err && typeof err.statusCode === 'number'
+      ? err.statusCode
+      : undefined
     if (statusCode && statusCode >= 400 && statusCode < 500) {
-      reply.code(statusCode).send({ error: err.message })
+      const message = err instanceof Error ? err.message : 'Request failed'
+      reply.code(statusCode).send({ error: message })
       return
     }
-    request.log.error(err)
+    request.log.error(err instanceof Error ? err : { err })
     if (reply.sent) return
     reply.code(500).send({ error: 'Internal server error' })
   })

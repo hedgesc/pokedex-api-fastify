@@ -9,10 +9,12 @@
     "node": ">=26"
   },
   "scripts": {
-    "start": "cross-env NODE_ENV=production node src/server.js",
-    "dev": "cross-env NODE_ENV=development node --watch src/server.js",
-    "dock": "cross-env NODE_ENV=docker node src/server.js",
-    "test": "cross-env NODE_ENV=development PGPASSWORD=test node --test"
+    "build": "tsc -p tsconfig.build.json",
+    "start": "cross-env NODE_ENV=production node dist/server.js",
+    "dev": "cross-env NODE_ENV=development tsx watch src/server.ts",
+    "dock": "cross-env NODE_ENV=docker node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && cross-env NODE_ENV=development PGPASSWORD=test node --import tsx --test test/app.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -21,10 +23,13 @@
     "@fastify/swagger-ui": "^5.2.6",
     "fastify": "5.12.8",
     "fastify-plugin": "^5.1.0",
-    "lodash": "^4.17.21",
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "cross-env": "^10.1.0"
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "cross-env": "^10.1.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }

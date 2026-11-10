@@ -1,32 +1,34 @@
+import type { FastifyInstance, FastifyReply } from 'fastify'
 import { createDexService } from './service.js'
 import { createDexGameService } from './games.js'
 import { createDexCharacterService } from './characters.js'
 import { createDexCharacterMoveService } from './moves.js'
 import { schemas } from '../../schemas.js'
+import type { DexCharacterParams, DexWrite, IdParams } from '../../models.js'
 
 const resource = 'Dex'
 
-function notFound (reply) {
+function notFound (reply: FastifyReply) {
   reply.code(404).send({ error: 'Not found' })
 }
 
-function text (reply, statusCode, message) {
+function text (reply: FastifyReply, statusCode: number, message: string) {
   reply.type('text/plain').code(statusCode).send(message)
 }
 
-export default async function dexRoutes (fastify) {
+export default async function dexRoutes (fastify: FastifyInstance) {
   const service = createDexService(fastify.db)
 
   fastify.get('/', { schema: schemas.dexList }, async (request, reply) => {
     reply.code(200).send(await service.list())
   })
 
-  fastify.post('/', { schema: schemas.dexCreate }, async (request, reply) => {
+  fastify.post<{ Body: DexWrite }>('/', { schema: schemas.dexCreate }, async (request, reply) => {
     const result = await service.create(request.body)
     text(reply, 201, `${resource} ${result.id} created`)
   })
 
-  fastify.get('/:id', { schema: schemas.dexGet }, async (request, reply) => {
+  fastify.get<{ Params: IdParams }>('/:id', { schema: schemas.dexGet }, async (request, reply) => {
     const json = await service.get(request.params.id)
     if (!json) {
       notFound(reply)
@@ -35,7 +37,7 @@ export default async function dexRoutes (fastify) {
     reply.code(200).send(json)
   })
 
-  fastify.put('/:id', { schema: schemas.dexUpdate }, async (request, reply) => {
+  fastify.put<{ Params: IdParams, Body: DexWrite }>('/:id', { schema: schemas.dexUpdate }, async (request, reply) => {
     const result = await service.update(request.params.id, request.body)
     if (!result) {
       notFound(reply)
@@ -44,7 +46,7 @@ export default async function dexRoutes (fastify) {
     text(reply, 200, `${resource} ${result.id} updated`)
   })
 
-  fastify.delete('/:id', { schema: schemas.dexRemove }, async (request, reply) => {
+  fastify.delete<{ Params: IdParams }>('/:id', { schema: schemas.dexRemove }, async (request, reply) => {
     const result = await service.remove(request.params.id)
     if (!result) {
       notFound(reply)
@@ -53,22 +55,22 @@ export default async function dexRoutes (fastify) {
     text(reply, 200, `${resource} ${result.id} deleted`)
   })
 
-  await fastify.register(async function dexGames (child) {
+  await fastify.register(async function dexGames (child: FastifyInstance) {
     const games = createDexGameService(child.db)
-    child.get('/', { schema: schemas.dexGames }, async (request, reply) => {
+    child.get<{ Params: IdParams }>('/', { schema: schemas.dexGames }, async (request, reply) => {
       reply.code(200).send(await games.list(request.params.id))
     })
   }, { prefix: '/:id/games' })
 
-  await fastify.register(async function dexCharacters (child) {
+  await fastify.register(async function dexCharacters (child: FastifyInstance) {
     const characters = createDexCharacterService(child.db)
-    child.get('/', { schema: schemas.dexCharacters }, async (request, reply) => {
+    child.get<{ Params: IdParams }>('/', { schema: schemas.dexCharacters }, async (request, reply) => {
       reply.code(200).send(await characters.list(request.params.id))
     })
 
-    await child.register(async function dexCharacterMoves (grandchild) {
+    await child.register(async function dexCharacterMoves (grandchild: FastifyInstance) {
       const moves = createDexCharacterMoveService(grandchild.db)
-      grandchild.get('/', { schema: schemas.dexCharacterMoves }, async (request, reply) => {
+      grandchild.get<{ Params: DexCharacterParams }>('/', { schema: schemas.dexCharacterMoves }, async (request, reply) => {
         const result = await moves.list(request.params.id, request.params.characterId)
         reply.code(200).send(result)
       })

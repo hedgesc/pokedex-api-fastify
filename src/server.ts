@@ -6,7 +6,7 @@ const app = await buildApp()
 try {
   await app.listen({ port: config.app.port, host: '0.0.0.0' })
 } catch (err) {
-  app.log.error(err)
+  app.log.error(err instanceof Error ? err : { err })
   process.exit(1)
 }
 

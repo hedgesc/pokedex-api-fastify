@@ -1,29 +1,31 @@
+import type { FastifyInstance, FastifyReply } from 'fastify'
 import { createMoveService } from './service.js'
 import { schemas } from '../../schemas.js'
+import type { IdParams, MoveWrite, PageQuery } from '../../models.js'
 
 const resource = 'Move'
 
-function notFound (reply) {
+function notFound (reply: FastifyReply) {
   reply.code(404).send({ error: 'Not found' })
 }
 
-function text (reply, statusCode, message) {
+function text (reply: FastifyReply, statusCode: number, message: string) {
   reply.type('text/plain').code(statusCode).send(message)
 }
 
-export default async function moveRoutes (fastify) {
+export default async function moveRoutes (fastify: FastifyInstance) {
   const service = createMoveService(fastify.db)
 
-  fastify.get('/', { schema: schemas.moveList }, async (request, reply) => {
+  fastify.get<{ Querystring: PageQuery }>('/', { schema: schemas.moveList }, async (request, reply) => {
     reply.code(200).send(await service.list(request.query.limit, request.query.offset))
   })
 
-  fastify.post('/', { schema: schemas.moveCreate }, async (request, reply) => {
+  fastify.post<{ Body: MoveWrite }>('/', { schema: schemas.moveCreate }, async (request, reply) => {
     const result = await service.create(request.body)
     text(reply, 201, `${resource} ${result.id} created`)
   })
 
-  fastify.get('/:id', { schema: schemas.moveGet }, async (request, reply) => {
+  fastify.get<{ Params: IdParams }>('/:id', { schema: schemas.moveGet }, async (request, reply) => {
     const json = await service.get(request.params.id)
     if (!json) {
       notFound(reply)
@@ -32,7 +34,7 @@ export default async function moveRoutes (fastify) {
     reply.code(200).send(json)
   })
 
-  fastify.put('/:id', { schema: schemas.moveUpdate }, async (request, reply) => {
+  fastify.put<{ Params: IdParams, Body: MoveWrite }>('/:id', { schema: schemas.moveUpdate }, async (request, reply) => {
     const result = await service.update(request.params.id, request.body)
     if (!result) {
       notFound(reply)
@@ -41,7 +43,7 @@ export default async function moveRoutes (fastify) {
     text(reply, 200, `${resource} ${result.id} updated`)
   })
 
-  fastify.delete('/:id', { schema: schemas.moveRemove }, async (request, reply) => {
+  fastify.delete<{ Params: IdParams }>('/:id', { schema: schemas.moveRemove }, async (request, reply) => {
     const result = await service.remove(request.params.id)
     if (!result) {
       notFound(reply)
